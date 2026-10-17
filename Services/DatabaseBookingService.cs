@@ -82,13 +82,21 @@ public sealed class DatabaseBookingService : IBookingService
         }
 
         if (!string.IsNullOrWhiteSpace(status))
+{
+    string statusFilter =
+        status.Trim().ToLowerInvariant() switch
         {
-            string statusFilter =
-                status.Trim().ToLowerInvariant();
+            "pending" => "Pending",
+            "confirmed" => "Confirmed",
+            "cancelled" => "Cancelled",
+            _ => throw new ArgumentException(
+                "Unsupported booking status.",
+                nameof(status))
+        };
 
-            query = query.Where(entity =>
-                entity.Status.ToLower() == statusFilter);
-        }
+    query = query.Where(entity =>
+        entity.Status == statusFilter);
+}
 
         int totalCount =
             await query.CountAsync(cancellationToken);

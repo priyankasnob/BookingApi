@@ -18,7 +18,28 @@ public sealed class BookingDbContext : DbContext
     {
         var booking = modelBuilder.Entity<BookingEntity>();
 
-        booking.ToTable("Bookings");
+        booking.ToTable("Bookings", table =>
+        {
+            table.HasCheckConstraint(
+                "CK_Bookings_Hours",
+                "\"Hours\" BETWEEN 1 AND 8");
+
+            table.HasCheckConstraint(
+                "CK_Bookings_HourlyRate",
+                "\"HourlyRate\" > 0 AND \"HourlyRate\" <= 10000");
+
+            table.HasCheckConstraint(
+                "CK_Bookings_DiscountPercent",
+                "\"DiscountPercent\" BETWEEN 0 AND 100");
+
+            table.HasCheckConstraint(
+                "CK_Bookings_BookingFee",
+                "\"BookingFee\" BETWEEN 0 AND 10000");
+
+            table.HasCheckConstraint(
+                "CK_Bookings_Status",
+                "\"Status\" IN ('Pending', 'Confirmed', 'Cancelled')");
+        });
 
         booking.HasKey(item => item.Id);
 
@@ -39,5 +60,12 @@ public sealed class BookingDbContext : DbContext
 
         booking.Property(item => item.Status)
             .IsRequired();
+
+        booking.HasIndex(item => new
+        {
+            item.Status,
+            item.Id
+        })
+        .HasDatabaseName("IX_Bookings_Status_Id");
     }
 }

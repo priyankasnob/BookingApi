@@ -62,7 +62,21 @@ namespace BookingApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Bookings", (string)null);
+                    b.HasIndex("Status", "Id")
+                        .HasDatabaseName("IX_Bookings_Status_Id");
+
+                    b.ToTable("Bookings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Bookings_BookingFee", "\"BookingFee\" BETWEEN 0 AND 10000");
+
+                            t.HasCheckConstraint("CK_Bookings_DiscountPercent", "\"DiscountPercent\" BETWEEN 0 AND 100");
+
+                            t.HasCheckConstraint("CK_Bookings_HourlyRate", "\"HourlyRate\" > 0 AND \"HourlyRate\" <= 10000");
+
+                            t.HasCheckConstraint("CK_Bookings_Hours", "\"Hours\" BETWEEN 1 AND 8");
+
+                            t.HasCheckConstraint("CK_Bookings_Status", "\"Status\" IN ('Pending', 'Confirmed', 'Cancelled')");
+                        });
                 });
 #pragma warning restore 612, 618
         }
