@@ -4,21 +4,30 @@ namespace BookingApi.Services;
 
 public interface IBookingService
 {
-    BookingResponse[] GetAll();
+    Task<BookingResponse[]> GetAllAsync(
+        CancellationToken cancellationToken);
 
-    PagedBookingsResponse Search(
+    Task<PagedBookingsResponse> SearchAsync(
         string? customerName,
         string? status,
         int page,
-        int pageSize);
+        int pageSize,
+        CancellationToken cancellationToken);
 
-    BookingResponse? GetById(int id);
-
-    BookingResponse Create(CreateBookingRequest request);
-
-    BookingResponse? Update(
+    Task<BookingResponse?> GetByIdAsync(
         int id,
-        CreateBookingRequest request);
+        CancellationToken cancellationToken);
 
-    bool Delete(int id);
+    Task<BookingResponse> CreateAsync(
+        CreateBookingRequest request,
+        CancellationToken cancellationToken);
+
+    Task<BookingResponse?> UpdateAsync(
+        int id,
+        CreateBookingRequest request,
+        CancellationToken cancellationToken);
+
+    Task<bool> DeleteAsync(
+        int id,
+        CancellationToken cancellationToken);
 }
