@@ -1,12 +1,24 @@
 using BookingApi.Models;
 using BookingApi.Services;
 using BookingApi.Validation;
+using BookingApi.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSingleton<
+string connectionString =
+    builder.Configuration.GetConnectionString("BookingDatabase")
+    ?? throw new InvalidOperationException(
+        "Connection string 'BookingDatabase' is missing.");
+
+builder.Services.AddDbContext<BookingDbContext>(options =>
+{
+    options.UseNpgsql(connectionString);
+});
+
+builder.Services.AddScoped<
     IBookingService,
-    InMemoryBookingService>();
+    DatabaseBookingService>();
 
     builder.Services.AddProblemDetails();
 
