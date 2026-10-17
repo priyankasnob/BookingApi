@@ -31,29 +31,33 @@ public sealed class DatabaseBookingService : IBookingService
             Status = entity.Status
         };
 
-    public BookingResponse[] GetAll()
+    public async Task<BookingResponse[]> GetAllAsync(
+        CancellationToken cancellationToken)
     {
-        return _db.Bookings
+        return await _db.Bookings
             .AsNoTracking()
             .OrderBy(entity => entity.Id)
             .Select(ToResponse)
-            .ToArray();
+            .ToArrayAsync(cancellationToken);
     }
 
-    public BookingResponse? GetById(int id)
+    public async Task<BookingResponse?> GetByIdAsync(
+        int id,
+        CancellationToken cancellationToken)
     {
-        return _db.Bookings
+        return await _db.Bookings
             .AsNoTracking()
             .Where(entity => entity.Id == id)
             .Select(ToResponse)
-            .FirstOrDefault();
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public PagedBookingsResponse Search(
+    public async Task<PagedBookingsResponse> SearchAsync(
         string? customerName,
         string? status,
         int page,
-        int pageSize)
+        int pageSize,
+        CancellationToken cancellationToken)
     {
         if (page < 1)
         {
@@ -70,7 +74,8 @@ public sealed class DatabaseBookingService : IBookingService
 
         if (!string.IsNullOrWhiteSpace(customerName))
         {
-            string nameFilter = customerName.Trim().ToLowerInvariant();
+            string nameFilter =
+                customerName.Trim().ToLowerInvariant();
 
             query = query.Where(entity =>
                 entity.CustomerName.ToLower().Contains(nameFilter));
@@ -78,24 +83,33 @@ public sealed class DatabaseBookingService : IBookingService
 
         if (!string.IsNullOrWhiteSpace(status))
         {
-            string statusFilter = status.Trim().ToLowerInvariant();
+            string statusFilter =
+                status.Trim().ToLowerInvariant();
 
             query = query.Where(entity =>
                 entity.Status.ToLower() == statusFilter);
         }
 
-        int totalCount = query.Count();
+        int totalCount =
+            await query.CountAsync(cancellationToken);
 
         long skip = ((long)page - 1) * pageSize;
 
-        BookingResponse[] items = skip >= totalCount
-            ? Array.Empty<BookingResponse>()
-            : query
+        BookingResponse[] items;
+
+        if (skip >= totalCount)
+        {
+            items = Array.Empty<BookingResponse>();
+        }
+        else
+        {
+            items = await query
                 .OrderBy(entity => entity.Id)
                 .Skip((int)skip)
                 .Take(pageSize)
                 .Select(ToResponse)
-                .ToArray();
+                .ToArrayAsync(cancellationToken);
+        }
 
         return new PagedBookingsResponse
         {
@@ -106,9 +120,13 @@ public sealed class DatabaseBookingService : IBookingService
         };
     }
 
-    public BookingResponse Create(CreateBookingRequest request)
+    public async Task<BookingResponse> CreateAsync(
+        CreateBookingRequest request,
+        CancellationToken cancellationToken)
     {
         EnsureValid(request);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         var entity = new BookingEntity
         {
@@ -118,18 +136,23 @@ public sealed class DatabaseBookingService : IBookingService
         ApplyRequest(entity, request);
 
         _db.Bookings.Add(entity);
-        _db.SaveChanges();
+
+        await _db.SaveChangesAsync(cancellationToken);
 
         return MapEntity(entity);
     }
 
-    public BookingResponse? Update(
+    public async Task<BookingResponse?> UpdateAsync(
         int id,
-        CreateBookingRequest request)
+        CreateBookingRequest request,
+        CancellationToken cancellationToken)
     {
         EnsureValid(request);
 
-        BookingEntity? entity = _db.Bookings.Find(id);
+        BookingEntity? entity = await _db.Bookings
+            .FirstOrDefaultAsync(
+                booking => booking.Id == id,
+                cancellationToken);
 
         if (entity is null)
         {
@@ -138,14 +161,19 @@ public sealed class DatabaseBookingService : IBookingService
 
         ApplyRequest(entity, request);
 
-        _db.SaveChanges();
+        await _db.SaveChangesAsync(cancellationToken);
 
         return MapEntity(entity);
     }
 
-    public bool Delete(int id)
+    public async Task<bool> DeleteAsync(
+        int id,
+        CancellationToken cancellationToken)
     {
-        BookingEntity? entity = _db.Bookings.Find(id);
+        BookingEntity? entity = await _db.Bookings
+            .FirstOrDefaultAsync(
+                booking => booking.Id == id,
+                cancellationToken);
 
         if (entity is null)
         {
@@ -153,7 +181,8 @@ public sealed class DatabaseBookingService : IBookingService
         }
 
         _db.Bookings.Remove(entity);
-        _db.SaveChanges();
+
+        await _db.SaveChangesAsync(cancellationToken);
 
         return true;
     }

@@ -45,11 +45,13 @@ app.MapGet("/", () =>
 
 app.MapGet(
     "/bookings",
-    (IBookingService bookingService,
-     string? customerName,
-     string? status,
-     int? page,
-     int? pageSize) =>
+    async (IBookingService bookingService,
+       string? customerName,
+       string? status,
+       int? page,
+       int? pageSize,
+       CancellationToken cancellationToken) =>
+    
 {
     int requestedPage = page ?? 1;
     int requestedPageSize = pageSize ?? 10;
@@ -104,11 +106,13 @@ app.MapGet(
         return Results.ValidationProblem(errors);
     }
 
-    PagedBookingsResponse result = bookingService.Search(
+    PagedBookingsResponse result =
+    await bookingService.SearchAsync(
         normalizedCustomerName,
         normalizedStatus,
         requestedPage,
-        requestedPageSize);
+        requestedPageSize,
+        cancellationToken);
 
     return Results.Ok(result);
 })
@@ -121,21 +125,26 @@ app.MapGet(
 
 app.MapGet(
     "/bookings/{id:int}",
-    (int id, IBookingService bookingService) =>
+    async (
+        int id,
+        IBookingService bookingService,
+        CancellationToken cancellationToken) =>
 {
-    BookingResponse? booking = bookingService.GetById(id);
+    BookingResponse? booking =
+        await bookingService.GetByIdAsync(
+            id,
+            cancellationToken);
 
     if (booking is null)
     {
         return Results.Problem(
-    statusCode: StatusCodes.Status404NotFound,
-    title: "Booking not found",
-    detail: $"Booking {id} was not found.");
+            statusCode: StatusCodes.Status404NotFound,
+            title: "Booking not found",
+            detail: $"Booking {id} was not found.");
     }
 
     return Results.Ok(booking);
 })
-
 .WithName("GetBookingById")
 .WithSummary("Get a booking by its ID")
 .WithTags("Bookings")
@@ -145,7 +154,10 @@ app.MapGet(
 
 app.MapPost(
     "/bookings",
-    (CreateBookingRequest request, IBookingService bookingService) =>
+    async (
+        CreateBookingRequest request,
+        IBookingService bookingService,
+        CancellationToken cancellationToken) =>
 {
     var errors = CreateBookingValidator.Validate(request);
 
@@ -154,29 +166,34 @@ app.MapPost(
         return Results.ValidationProblem(errors);
     }
 
-    BookingResponse booking = bookingService.Create(request);
+    BookingResponse booking =
+        await bookingService.CreateAsync(
+            request,
+            cancellationToken);
 
     app.Logger.LogInformation(
-    "Created booking {BookingId} for date {BookingDate}.",
-    booking.Id,
-    booking.BookingDate);
+        "Created booking {BookingId} for date {BookingDate}.",
+        booking.Id,
+        booking.BookingDate);
 
     return Results.Created(
         $"/bookings/{booking.Id}",
         booking);
 })
-
 .WithName("CreateBooking")
 .WithSummary("Create a booking")
 .WithTags("Bookings")
 .Produces<BookingResponse>(StatusCodes.Status201Created)
 .ProducesValidationProblem();
 
+
 app.MapPut(
     "/bookings/{id:int}",
-    (int id,
-     CreateBookingRequest request,
-     IBookingService bookingService) =>
+    async (
+        int id,
+        CreateBookingRequest request,
+        IBookingService bookingService,
+        CancellationToken cancellationToken) =>
 {
     var errors = CreateBookingValidator.Validate(request);
 
@@ -186,19 +203,21 @@ app.MapPut(
     }
 
     BookingResponse? booking =
-        bookingService.Update(id, request);
+        await bookingService.UpdateAsync(
+            id,
+            request,
+            cancellationToken);
 
     if (booking is null)
     {
         return Results.Problem(
-    statusCode: StatusCodes.Status404NotFound,
-    title: "Booking not found",
-    detail: $"Booking {id} was not found.");
+            statusCode: StatusCodes.Status404NotFound,
+            title: "Booking not found",
+            detail: $"Booking {id} was not found.");
     }
 
     return Results.Ok(booking);
 })
-
 .WithName("UpdateBooking")
 .WithSummary("Replace a booking's editable details")
 .WithTags("Bookings")
@@ -206,28 +225,32 @@ app.MapPut(
 .ProducesValidationProblem()
 .ProducesProblem(StatusCodes.Status404NotFound);
 
-
 app.MapDelete(
     "/bookings/{id:int}",
-    (int id, IBookingService bookingService) =>
+    async (
+        int id,
+        IBookingService bookingService,
+        CancellationToken cancellationToken) =>
 {
-    bool deleted = bookingService.Delete(id);
+    bool deleted =
+        await bookingService.DeleteAsync(
+            id,
+            cancellationToken);
 
     if (!deleted)
     {
         return Results.Problem(
-    statusCode: StatusCodes.Status404NotFound,
-    title: "Booking not found",
-    detail: $"Booking {id} was not found.");
+            statusCode: StatusCodes.Status404NotFound,
+            title: "Booking not found",
+            detail: $"Booking {id} was not found.");
     }
 
     app.Logger.LogInformation(
-    "Deleted booking {BookingId}.",
-    id);
+        "Deleted booking {BookingId}.",
+        id);
 
     return Results.NoContent();
 })
-
 .WithName("DeleteBooking")
 .WithSummary("Delete a booking")
 .WithTags("Bookings")
@@ -235,8 +258,10 @@ app.MapDelete(
 .ProducesProblem(StatusCodes.Status404NotFound);
 
 
+   if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
 
-
-    
 app.Run();
 
