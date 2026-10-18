@@ -7,6 +7,311 @@
   },
   "item": [
     {
+      "name": "Week 5 - Database Review",
+      "item": [
+        {
+          "name": "Create review booking",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Week5 Review Priyanka\",\n  \"packageName\": \"Portrait\",\n  \"bookingDate\": \"2026-11-28\",\n  \"hourlyRate\": 125,\n  \"hours\": 2,\n  \"discountPercent\": 10,\n  \"bookingFee\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5050/bookings",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5050",
+              "path": [
+                "bookings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get review booking",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5050/bookings/9",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5050",
+              "path": [
+                "bookings",
+                "9"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update review booking",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Week5 Review Priyanka\",\n  \"packageName\": \"Portrait\",\n  \"bookingDate\": \"2026-11-28\",\n  \"hourlyRate\": 125,\n  \"hours\": 3,\n  \"discountPercent\": 10,\n  \"bookingFee\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5050/bookings/9",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5050",
+              "path": [
+                "bookings",
+                "9"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reject invalid update",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Week5 Review Priyanka\",\n  \"packageName\": \"Portrait\",\n  \"bookingDate\": \"2026-11-28\",\n  \"hourlyRate\": 125,\n  \"hours\": 0,\n  \"discountPercent\": 10,\n  \"bookingFee\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:5050/bookings/9",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5050",
+              "path": [
+                "bookings",
+                "9"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filter review bookings  Page1",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5050/bookings?customerName=Week5%20Review%20Priyanka&page=1&pageSize=1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5050",
+              "path": [
+                "bookings"
+              ],
+              "query": [
+                {
+                  "key": "customerName",
+                  "value": "Week5%20Review%20Priyanka"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filter review bookings Page2",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5050/bookings?customerName=Week5%20Review%20Priyanka&page=2&pageSize=1",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5050",
+              "path": [
+                "bookings"
+              ],
+              "query": [
+                {
+                  "key": "customerName",
+                  "value": "Week5%20Review%20Priyanka"
+                },
+                {
+                  "key": "page",
+                  "value": "2"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filter review bookings Page0",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5050/bookings?page=0&pageSize=10",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5050",
+              "path": [
+                "bookings"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify documentation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5050/openapi/v1.json",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5050",
+              "path": [
+                "openapi",
+                "v1.json"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "removed debug routes  Does not exist",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5050/does-not-exist",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5050",
+              "path": [
+                "does-not-exist"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "removed debug routes  Does not exist Query Projection",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5050/debug/query-projection",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5050",
+              "path": [
+                "debug",
+                "query-projection"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "removed debug routes  Does not exist Query Tracking",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5050/debug/query-tracking",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5050",
+              "path": [
+                "debug",
+                "query-tracking"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete review booking",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5050/bookings/9",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5050",
+              "path": [
+                "bookings",
+                "9"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "API status",
       "request": {
         "method": "GET",
