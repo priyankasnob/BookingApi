@@ -4,6 +4,8 @@ using BookingApi.Validation;
 using BookingApi.Data;
 using Microsoft.EntityFrameworkCore;
 
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 string connectionString =
@@ -33,6 +35,8 @@ app.UseStatusCodePages();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    
+    
 }
 
 app.MapGet("/", () =>
@@ -258,10 +262,7 @@ app.MapDelete(
 .ProducesProblem(StatusCodes.Status404NotFound);
 
 
-   if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+   
 
 app.Run();
 
