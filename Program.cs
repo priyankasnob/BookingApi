@@ -261,7 +261,6 @@ app.MapDelete(
 .Produces(StatusCodes.Status204NoContent)
 .ProducesProblem(StatusCodes.Status404NotFound);
 
-
    
 
 app.Run();
