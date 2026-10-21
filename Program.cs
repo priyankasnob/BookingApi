@@ -4,6 +4,10 @@ using BookingApi.Validation;
 using BookingApi.Data;
 using Microsoft.EntityFrameworkCore;
 
+using BookingApi.Identity;
+using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +22,24 @@ builder.Services.AddDbContext<BookingDbContext>(options =>
     options.UseNpgsql(connectionString);
 });
 
+builder.Services
+    .AddIdentityApiEndpoints<ApplicationUser>(options =>
+    {
+        options.User.RequireUniqueEmail = true;
+
+        options.Password.RequiredLength = 12;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireDigit = true;
+        options.Password.RequireNonAlphanumeric = true;
+
+        // Local learning setup: no email delivery configured yet.
+        options.SignIn.RequireConfirmedEmail = false;
+    })
+    .AddEntityFrameworkStores<BookingDbContext>();
+
+builder.Services.AddAuthorization();
+
 builder.Services.AddScoped<
     IBookingService,
     DatabaseBookingService>();
@@ -31,6 +53,10 @@ var app = builder.Build();
 app.UseExceptionHandler();
 
 app.UseStatusCodePages();
+
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
 {
@@ -261,7 +287,21 @@ app.MapDelete(
 .Produces(StatusCodes.Status204NoContent)
 .ProducesProblem(StatusCodes.Status404NotFound);
 
-   
+ app.MapGroup("/auth")
+    .MapIdentityApi<ApplicationUser>();  
+
+    app.MapGet("/auth/me", (ClaimsPrincipal user) =>
+{
+    return Results.Ok(new
+    {
+        userId = user.FindFirstValue(ClaimTypes.NameIdentifier),
+        email = user.FindFirstValue(ClaimTypes.Email)
+    });
+})
+.RequireAuthorization()
+.WithName("GetCurrentUser")
+.WithTags("Authentication")
+.WithSummary("Returns the authenticated user's ID and email.");
 
 app.Run();
 

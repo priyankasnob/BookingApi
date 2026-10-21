@@ -1,9 +1,12 @@
 using BookingApi.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using BookingApi.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+
 namespace BookingApi.Data;
 
-public sealed class BookingDbContext : DbContext
+public sealed class BookingDbContext :  IdentityDbContext<ApplicationUser>
 {
     public BookingDbContext(
         DbContextOptions<BookingDbContext> options)
@@ -16,6 +19,7 @@ public sealed class BookingDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+         base.OnModelCreating(modelBuilder);
         var booking = modelBuilder.Entity<BookingEntity>();
 
         booking.ToTable("Bookings", table =>
