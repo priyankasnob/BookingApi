@@ -4,6 +4,8 @@ public sealed class BookingEntity
 {
     public int Id { get; set; }
 
+    public string? OwnerUserId { get; set; }
+
     public string CustomerName { get; set; } = string.Empty;
 
     public string PackageName { get; set; } = string.Empty;
