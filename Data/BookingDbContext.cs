@@ -22,6 +22,14 @@ public sealed class BookingDbContext :  IdentityDbContext<ApplicationUser>
          base.OnModelCreating(modelBuilder);
         var booking = modelBuilder.Entity<BookingEntity>();
 
+        booking.HasOne<ApplicationUser>()
+    .WithMany()
+    .HasForeignKey(item => item.OwnerUserId)
+    .OnDelete(DeleteBehavior.Restrict);
+
+booking.HasIndex(item => new { item.OwnerUserId, item.Id })
+    .HasDatabaseName("IX_Bookings_OwnerUserId_Id");
+
         booking.ToTable("Bookings", table =>
         {
             table.HasCheckConstraint(

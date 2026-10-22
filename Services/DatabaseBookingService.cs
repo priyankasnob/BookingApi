@@ -10,15 +10,18 @@ namespace BookingApi.Services;
 public sealed class DatabaseBookingService : IBookingService
 {
     private readonly BookingDbContext _db;
+    private readonly ICurrentUser _currentUser;
 
-    public DatabaseBookingService(BookingDbContext db)
+    public DatabaseBookingService(
+        BookingDbContext db,
+        ICurrentUser currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
-    private static readonly Expression<
-        Func<BookingEntity, BookingResponse>> ToResponse =
-        entity => new BookingResponse
+    private static readonly Expression<Func<BookingEntity, BookingResponse>>
+        ToResponse = entity => new BookingResponse
         {
             Id = entity.Id,
             CustomerName = entity.CustomerName,
@@ -31,25 +34,22 @@ public sealed class DatabaseBookingService : IBookingService
             Status = entity.Status
         };
 
+    private IQueryable<BookingEntity> OwnedBookings()
+    {
+        string userId = _currentUser.GetRequiredUserId();
+
+        return _db.Bookings.Where(
+            entity => entity.OwnerUserId == userId);
+    }
+
     public async Task<BookingResponse[]> GetAllAsync(
         CancellationToken cancellationToken)
     {
-        return await _db.Bookings
+        return await OwnedBookings()
             .AsNoTracking()
             .OrderBy(entity => entity.Id)
             .Select(ToResponse)
             .ToArrayAsync(cancellationToken);
-    }
-
-    public async Task<BookingResponse?> GetByIdAsync(
-        int id,
-        CancellationToken cancellationToken)
-    {
-        return await _db.Bookings
-            .AsNoTracking()
-            .Where(entity => entity.Id == id)
-            .Select(ToResponse)
-            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<PagedBookingsResponse> SearchAsync(
@@ -70,46 +70,37 @@ public sealed class DatabaseBookingService : IBookingService
         }
 
         IQueryable<BookingEntity> query =
-            _db.Bookings.AsNoTracking();
+            OwnedBookings().AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(customerName))
         {
-            string nameFilter =
-                customerName.Trim().ToLowerInvariant();
+            string nameFilter = customerName.Trim().ToLowerInvariant();
 
             query = query.Where(entity =>
                 entity.CustomerName.ToLower().Contains(nameFilter));
         }
 
         if (!string.IsNullOrWhiteSpace(status))
-{
-    string statusFilter =
-        status.Trim().ToLowerInvariant() switch
         {
-            "pending" => "Pending",
-            "confirmed" => "Confirmed",
-            "cancelled" => "Cancelled",
-            _ => throw new ArgumentException(
-                "Unsupported booking status.",
-                nameof(status))
-        };
+            string statusFilter = status.Trim().ToLowerInvariant() switch
+            {
+                "pending" => "Pending",
+                "confirmed" => "Confirmed",
+                "cancelled" => "Cancelled",
+                _ => throw new ArgumentException(
+                    "Unsupported booking status.", nameof(status))
+            };
 
-    query = query.Where(entity =>
-        entity.Status == statusFilter);
-}
+            query = query.Where(entity => entity.Status == statusFilter);
+        }
 
-        int totalCount =
-            await query.CountAsync(cancellationToken);
+        int totalCount = await query.CountAsync(cancellationToken);
 
         long skip = ((long)page - 1) * pageSize;
 
-        BookingResponse[] items;
+        BookingResponse[] items = Array.Empty<BookingResponse>();
 
-        if (skip >= totalCount)
-        {
-            items = Array.Empty<BookingResponse>();
-        }
-        else
+        if (skip < totalCount)
         {
             items = await query
                 .OrderBy(entity => entity.Id)
@@ -128,23 +119,35 @@ public sealed class DatabaseBookingService : IBookingService
         };
     }
 
+    public async Task<BookingResponse?> GetByIdAsync(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        return await OwnedBookings()
+            .AsNoTracking()
+            .Where(entity => entity.Id == id)
+            .Select(ToResponse)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<BookingResponse> CreateAsync(
         CreateBookingRequest request,
         CancellationToken cancellationToken)
     {
-        EnsureValid(request);
+        string ownerUserId = _currentUser.GetRequiredUserId();
 
+        EnsureValid(request);
         cancellationToken.ThrowIfCancellationRequested();
 
         var entity = new BookingEntity
         {
+            OwnerUserId = ownerUserId,
             Status = "Pending"
         };
 
         ApplyRequest(entity, request);
 
         _db.Bookings.Add(entity);
-
         await _db.SaveChangesAsync(cancellationToken);
 
         return MapEntity(entity);
@@ -155,11 +158,9 @@ public sealed class DatabaseBookingService : IBookingService
         CreateBookingRequest request,
         CancellationToken cancellationToken)
     {
-        EnsureValid(request);
-
-        BookingEntity? entity = await _db.Bookings
+        var entity = await OwnedBookings()
             .FirstOrDefaultAsync(
-                booking => booking.Id == id,
+                item => item.Id == id,
                 cancellationToken);
 
         if (entity is null)
@@ -167,6 +168,7 @@ public sealed class DatabaseBookingService : IBookingService
             return null;
         }
 
+        EnsureValid(request);
         ApplyRequest(entity, request);
 
         await _db.SaveChangesAsync(cancellationToken);
@@ -178,9 +180,9 @@ public sealed class DatabaseBookingService : IBookingService
         int id,
         CancellationToken cancellationToken)
     {
-        BookingEntity? entity = await _db.Bookings
+        var entity = await OwnedBookings()
             .FirstOrDefaultAsync(
-                booking => booking.Id == id,
+                item => item.Id == id,
                 cancellationToken);
 
         if (entity is null)
@@ -189,10 +191,23 @@ public sealed class DatabaseBookingService : IBookingService
         }
 
         _db.Bookings.Remove(entity);
-
         await _db.SaveChangesAsync(cancellationToken);
 
         return true;
+    }
+
+    private static void EnsureValid(CreateBookingRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var errors = CreateBookingValidator.Validate(request);
+
+        if (errors.Count > 0)
+        {
+            throw new ArgumentException(
+                "The booking request contains invalid values.",
+                nameof(request));
+        }
     }
 
     private static void ApplyRequest(
@@ -222,19 +237,5 @@ public sealed class DatabaseBookingService : IBookingService
             BookingFee = entity.BookingFee,
             Status = entity.Status
         };
-    }
-
-    private static void EnsureValid(CreateBookingRequest request)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-
-        var errors = CreateBookingValidator.Validate(request);
-
-        if (errors.Count > 0)
-        {
-            throw new ArgumentException(
-                "The booking request contains invalid values.",
-                nameof(request));
-        }
     }
 }

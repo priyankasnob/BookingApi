@@ -48,6 +48,9 @@ builder.Services.AddScoped<
 
     builder.Services.AddOpenApi();
 
+    builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
+
 var app = builder.Build();
 
 app.UseExceptionHandler();
@@ -151,7 +154,10 @@ app.MapGet(
 .WithSummary("Filter and paginate bookings")
 .WithTags("Bookings")
 .Produces<PagedBookingsResponse>(StatusCodes.Status200OK)
-.ProducesValidationProblem();
+.ProducesValidationProblem()
+.RequireAuthorization();
+
+
 
 app.MapGet(
     "/bookings/{id:int}",
@@ -179,7 +185,8 @@ app.MapGet(
 .WithSummary("Get a booking by its ID")
 .WithTags("Bookings")
 .Produces<BookingResponse>(StatusCodes.Status200OK)
-.ProducesProblem(StatusCodes.Status404NotFound);
+.ProducesProblem(StatusCodes.Status404NotFound)
+.RequireAuthorization();
 
 
 app.MapPost(
@@ -214,7 +221,8 @@ app.MapPost(
 .WithSummary("Create a booking")
 .WithTags("Bookings")
 .Produces<BookingResponse>(StatusCodes.Status201Created)
-.ProducesValidationProblem();
+.ProducesValidationProblem()
+.RequireAuthorization();
 
 
 app.MapPut(
@@ -253,7 +261,8 @@ app.MapPut(
 .WithTags("Bookings")
 .Produces<BookingResponse>(StatusCodes.Status200OK)
 .ProducesValidationProblem()
-.ProducesProblem(StatusCodes.Status404NotFound);
+.ProducesProblem(StatusCodes.Status404NotFound)
+.RequireAuthorization();
 
 app.MapDelete(
     "/bookings/{id:int}",
@@ -285,7 +294,8 @@ app.MapDelete(
 .WithSummary("Delete a booking")
 .WithTags("Bookings")
 .Produces(StatusCodes.Status204NoContent)
-.ProducesProblem(StatusCodes.Status404NotFound);
+.ProducesProblem(StatusCodes.Status404NotFound)
+.RequireAuthorization();
 
  app.MapGroup("/auth")
     .MapIdentityApi<ApplicationUser>();  

@@ -52,6 +52,9 @@ namespace BookingApi.Migrations
                     b.Property<int>("Hours")
                         .HasColumnType("integer");
 
+                    b.Property<string>("OwnerUserId")
+                        .HasColumnType("text");
+
                     b.Property<string>("PackageName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -61,6 +64,9 @@ namespace BookingApi.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId", "Id")
+                        .HasDatabaseName("IX_Bookings_OwnerUserId_Id");
 
                     b.HasIndex("Status", "Id")
                         .HasDatabaseName("IX_Bookings_Status_Id");
@@ -273,6 +279,14 @@ namespace BookingApi.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("BookingApi.Entities.BookingEntity", b =>
+                {
+                    b.HasOne("BookingApi.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
