@@ -130,3 +130,41 @@ Create a booking, note its returned ID, and use that ID for subsequent GET, PUT,
 ## Learning Topics
 
 HTTP methods, JSON, validation, status codes, interfaces, dependency injection, service lifetimes, filtering, pagination, logging, error handling, and OpenAPI.
+
+
+
+
+## Authentication and booking access
+
+BookingApi uses ASP.NET Core Identity with PostgreSQL.
+
+- Register: `POST /auth/register`
+- Sign in: `POST /auth/login?useCookies=false&useSessionCookies=false`
+- Confirm the current signed-in account: `GET /auth/me`
+- Booking routes require a bearer token.
+- Users can access only bookings they own.
+- Requests for another user's booking return `404 Not Found`.
+
+Never commit passwords, access tokens, refresh tokens, or PostgreSQL connection strings.
+
+## Booking schedule rules
+
+- New bookings require `bookingDate`, `startTime`, and `hours`.
+- A booking must end by midnight.
+- Pending and confirmed bookings block overlapping appointments.
+- Adjacent appointments are allowed.
+- Overlapping requests return `409 Conflict`.
+- The application performs availability checking before save. A future improvement is database-level protection for simultaneous conflicting requests.
+
+## Tests
+
+The API test project is located at:
+
+`tests/BookingApi.Tests`
+
+Tests use the separate PostgreSQL database `booking_api_tests`.
+
+Set the local test connection before testing:
+
+```bash
+export BOOKING_API_TEST_CONNECTION='Host=localhost;Port=5432;Database=booking_api_tests;Username=postgres;Password=postgrey'

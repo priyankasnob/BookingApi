@@ -330,3 +330,7 @@ app.MapDelete(
 
 app.Run();
 
+public partial class Program
+{
+}
+
