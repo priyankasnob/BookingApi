@@ -28,6 +28,20 @@ public static class CreateBookingValidator
                 new[] { "A valid booking date is required." };
         }
 
+        if (request.StartTime is null)
+{
+    errors["startTime"] = ["Start time is required."];
+}
+else if (request.Hours is int hours &&
+         request.StartTime.Value.ToTimeSpan()
+         + TimeSpan.FromHours(hours) > TimeSpan.FromHours(24))
+{
+    errors["startTime"] =
+    [
+        "The booking must end by midnight."
+    ];
+}
+
         if (request.HourlyRate is null ||
             request.HourlyRate <= 0 ||
             request.HourlyRate > 10000)
