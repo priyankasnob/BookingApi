@@ -73,6 +73,9 @@ booking.HasIndex(item => new { item.OwnerUserId, item.Id })
         booking.Property(item => item.Status)
             .IsRequired();
 
+            booking.Property(item => item.StartTime)
+    .HasColumnType("time without time zone");
+
         booking.HasIndex(item => new
         {
             item.Status,

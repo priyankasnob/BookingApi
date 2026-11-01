@@ -8,6 +8,8 @@ public sealed class CreateBookingRequest
 
     public DateOnly? BookingDate { get; init; }
 
+    public TimeOnly? StartTime { get; init; }
+
     public decimal? HourlyRate { get; init; }
 
     public int? Hours { get; init; }

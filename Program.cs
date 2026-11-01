@@ -189,12 +189,10 @@ app.MapGet(
 .RequireAuthorization();
 
 
-app.MapPost(
-    "/bookings",
-    async (
-        CreateBookingRequest request,
-        IBookingService bookingService,
-        CancellationToken cancellationToken) =>
+app.MapPost("/bookings", async Task<IResult> (
+    CreateBookingRequest request,
+    IBookingService bookingService,
+    CancellationToken cancellationToken) =>
 {
     var errors = CreateBookingValidator.Validate(request);
 
@@ -203,35 +201,42 @@ app.MapPost(
         return Results.ValidationProblem(errors);
     }
 
-    BookingResponse booking =
-        await bookingService.CreateAsync(
+    try
+    {
+        var booking = await bookingService.CreateAsync(
             request,
             cancellationToken);
 
-    app.Logger.LogInformation(
-        "Created booking {BookingId} for date {BookingDate}.",
+            app.Logger.LogInformation(
+        "Created booking {BookingId} for date {BookingDate}",
         booking.Id,
         booking.BookingDate);
 
-    return Results.Created(
-        $"/bookings/{booking.Id}",
-        booking);
+        return Results.Created(
+            $"/bookings/{booking.Id}",
+            booking);
+    }
+    catch (BookingConflictException exception)
+    {
+        return Results.Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Booking time unavailable",
+            detail: exception.Message);
+    }
 })
 .WithName("CreateBooking")
-.WithSummary("Create a booking")
 .WithTags("Bookings")
+.WithSummary("Creates a booking for the authenticated user.")
 .Produces<BookingResponse>(StatusCodes.Status201Created)
-.ProducesValidationProblem()
+.ProducesValidationProblem(StatusCodes.Status400BadRequest)
+.ProducesProblem(StatusCodes.Status409Conflict)
 .RequireAuthorization();
 
-
-app.MapPut(
-    "/bookings/{id:int}",
-    async (
-        int id,
-        CreateBookingRequest request,
-        IBookingService bookingService,
-        CancellationToken cancellationToken) =>
+app.MapPut("/bookings/{id:int}", async Task<IResult> (
+    int id,
+    CreateBookingRequest request,
+    IBookingService bookingService,
+    CancellationToken cancellationToken) =>
 {
     var errors = CreateBookingValidator.Validate(request);
 
@@ -240,29 +245,39 @@ app.MapPut(
         return Results.ValidationProblem(errors);
     }
 
-    BookingResponse? booking =
-        await bookingService.UpdateAsync(
+    try
+    {
+        var updatedBooking = await bookingService.UpdateAsync(
             id,
             request,
             cancellationToken);
 
-    if (booking is null)
+        if (updatedBooking is null)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Booking not found");
+        }
+
+        return Results.Ok(updatedBooking);
+    }
+    catch (BookingConflictException exception)
     {
         return Results.Problem(
-            statusCode: StatusCodes.Status404NotFound,
-            title: "Booking not found",
-            detail: $"Booking {id} was not found.");
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Booking time unavailable",
+            detail: exception.Message);
     }
-
-    return Results.Ok(booking);
 })
 .WithName("UpdateBooking")
-.WithSummary("Replace a booking's editable details")
 .WithTags("Bookings")
+.WithSummary("Updates a booking owned by the authenticated user.")
 .Produces<BookingResponse>(StatusCodes.Status200OK)
-.ProducesValidationProblem()
+.ProducesValidationProblem(StatusCodes.Status400BadRequest)
 .ProducesProblem(StatusCodes.Status404NotFound)
+.ProducesProblem(StatusCodes.Status409Conflict)
 .RequireAuthorization();
+
 
 app.MapDelete(
     "/bookings/{id:int}",

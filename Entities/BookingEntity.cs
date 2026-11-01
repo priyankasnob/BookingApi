@@ -12,6 +12,8 @@ public sealed class BookingEntity
 
     public DateOnly BookingDate { get; set; }
 
+    public TimeOnly? StartTime { get; set; }
+
     public decimal HourlyRate { get; set; }
 
     public int Hours { get; set; }
