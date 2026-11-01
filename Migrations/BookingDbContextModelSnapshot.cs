@@ -59,6 +59,9 @@ namespace BookingApi.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<TimeOnly?>("StartTime")
+                        .HasColumnType("time without time zone");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");

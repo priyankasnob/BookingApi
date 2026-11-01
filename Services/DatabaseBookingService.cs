@@ -130,6 +130,38 @@ public sealed class DatabaseBookingService : IBookingService
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+private async Task<bool> HasSchedulingConflictAsync(
+    DateOnly bookingDate,
+    TimeOnly startTime,
+    int hours,
+    int? bookingIdToExclude,
+    CancellationToken cancellationToken)
+{
+    var candidates = await _db.Bookings
+        .AsNoTracking()
+        .Where(booking =>
+            booking.BookingDate == bookingDate &&
+            booking.StartTime != null &&
+            booking.Status != "Cancelled" &&
+            (!bookingIdToExclude.HasValue ||
+             booking.Id != bookingIdToExclude.Value))
+        .Select(booking => new
+        {
+            booking.StartTime,
+            booking.Hours
+        })
+        .ToListAsync(cancellationToken);
+
+    var requestedEnd = startTime.AddHours(hours);
+
+    return candidates.Any(booking =>
+    {
+        var existingStart = booking.StartTime!.Value;
+        var existingEnd = existingStart.AddHours(booking.Hours);
+
+        return startTime < existingEnd && existingStart < requestedEnd;
+    });
+}
     public async Task<BookingResponse> CreateAsync(
         CreateBookingRequest request,
         CancellationToken cancellationToken)
@@ -137,13 +169,36 @@ public sealed class DatabaseBookingService : IBookingService
         string ownerUserId = _currentUser.GetRequiredUserId();
 
         EnsureValid(request);
+
+        if (await HasSchedulingConflictAsync(
+        request.BookingDate!.Value,
+        request.StartTime!.Value,
+        request.Hours!.Value,
+        bookingIdToExclude: null,
+        cancellationToken))
+{
+    throw new BookingConflictException();
+}
+
         cancellationToken.ThrowIfCancellationRequested();
 
         var entity = new BookingEntity
         {
             OwnerUserId = ownerUserId,
-            Status = "Pending"
+            Status = "Pending",
+            StartTime = request.StartTime!.Value,
+
         };
+
+        if (await HasSchedulingConflictAsync(
+        request.BookingDate!.Value,
+        request.StartTime!.Value,
+        request.Hours!.Value,
+        bookingIdToExclude: entity.Id,
+        cancellationToken))
+{
+    throw new BookingConflictException();
+}
 
         ApplyRequest(entity, request);
 
@@ -217,6 +272,8 @@ public sealed class DatabaseBookingService : IBookingService
         entity.CustomerName = request.CustomerName!.Trim();
         entity.PackageName = request.PackageName!.Trim();
         entity.BookingDate = request.BookingDate!.Value;
+        entity.StartTime = request.StartTime!.Value;
+
         entity.HourlyRate = request.HourlyRate!.Value;
         entity.Hours = request.Hours!.Value;
         entity.DiscountPercent = request.DiscountPercent!.Value;
@@ -231,6 +288,7 @@ public sealed class DatabaseBookingService : IBookingService
             CustomerName = entity.CustomerName,
             PackageName = entity.PackageName,
             BookingDate = entity.BookingDate,
+            StartTime = entity.StartTime,
             HourlyRate = entity.HourlyRate,
             Hours = entity.Hours,
             DiscountPercent = entity.DiscountPercent,
